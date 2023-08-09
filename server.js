@@ -20,16 +20,11 @@ app.use(morgan('dev'));
 
 // routes
 app.use('/api/v1/user', require('./routes/userRoutes'));
-// app.get('/', (req, res) => {
-//     res.status(200).send({
-//         message: 'server running',
-//     });
-// });
 
 // static file
 app.use(express.static(path.join(__dirname, './../doctor-appointment-clients/build')));
 app.get('*', function (req, res) {
-    res.sendFile(path.join(__dirname, './../doctor-appointment-clients/build/index.html'))
+    res.sendFile(path.join(__dirname, './doctor-appointment-clients/build/index.html'))
 });
 
 //port
