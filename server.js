@@ -22,7 +22,7 @@ app.use(morgan('dev'));
 app.use('/api/v1/user', require('./routes/userRoutes'));
 
 // static file
-app.use(express.static(path.join(__dirname, './../doctor-appointment-clients/build')));
+app.use(express.static(path.join(__dirname, './doctor-appointment-clients/build')));
 app.get('*', function (req, res) {
     res.sendFile(path.join(__dirname, './doctor-appointment-clients/build/index.html'))
 });
