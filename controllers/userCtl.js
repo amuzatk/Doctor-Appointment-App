@@ -85,18 +85,19 @@ const loginController = (req, res) => {
 
 const authController = async (req, res) => {
   try {
-    const user = await userModel.findById({ _id: req.body.userId });
-    user.password = undefined;
+    const user = await userModel.findOne({ _id: req.body.userId });
     if (!user) {
-      // return res.status(200).send({
-      return res.status(404).send({
+      return res.status(200).send({
         message: "User Not Found",
         success: false,
       });
     } else {
       res.status(200).send({
         success: true,
-        data: user,
+        data: {
+          name: user.name,
+          email: user.email,
+        },
       });
     }
   } catch (error) {
