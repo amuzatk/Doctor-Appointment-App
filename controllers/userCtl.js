@@ -19,7 +19,9 @@ const registerController = async (req, res) => {
     req.body.password = hashedPassword;
     const newUser = new userModel(req.body);
     await newUser.save();
-    res.status(201).send({ message: "Register Successfully!", success: true });
+    res
+      .status(201)
+      .send({ message: "Registered Successfully!", success: true });
   } catch (error) {
     console.log(error);
     res.status(500).send({
@@ -113,7 +115,7 @@ const authController = async (req, res) => {
 // Apply-Doc Ctrl
 const applyDoctorController = async (req, res) => {
   try {
-    const newDoctor = await doctorModel({ ...req.body, status: "pendng" });
+    const newDoctor = await doctorModel({ ...req.body, status: "pending" });
     await newDoctor.save();
     const adminUser = await userModel.findOne({ isAdmin: true });
     const notification = adminUser.notification;
@@ -122,15 +124,15 @@ const applyDoctorController = async (req, res) => {
       message: `${newDoctor.firstName} ${newDoctor.lastName} has applied for a Doctor Account`,
       data: {
         doctorId: newDoctor._id,
-        name: newDoctor.firstName + ' ' + newDoctor.lastName,
-        onClickPath: '/admin/doctors'
-      }
+        name: newDoctor.firstName + " " + newDoctor.lastName,
+        onClickPath: "/admin/doctors",
+      },
     });
-    await userModel.findOneAndUpdate(adminUser._id, {notification})
+    await userModel.findByIdAndUpdate(adminUser._id, { notification });
     res.status(201).send({
       success: true,
-      message: 'Doctor Account Applied Successfully'
-    })
+      message: "Doctor Account Applied Successfully",
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send({
@@ -141,9 +143,34 @@ const applyDoctorController = async (req, res) => {
   }
 };
 
+const getAllNotificationController = async (req, res) => {
+  try {
+    const user = await userModel.findOne({_id: req.body.userId});
+    const seenNotification = user.seennotification;
+    const notification = user.notification;
+    seenNotification.push(...notification);
+    user.notification = [];
+    user.seennotification = notification;
+    const updatedUser = await user.save();
+    res.status(200).send({
+      success: true,
+      message: 'All Notifications marked as read',
+      data: updatedUser,
+    })
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      message: "Error in Notification",
+      success: false,
+      error,
+    });
+  }
+};
+
 module.exports = {
   loginController,
-  registerController,
   authController,
+  registerController,
   applyDoctorController,
+  getAllNotificationController,
 };
