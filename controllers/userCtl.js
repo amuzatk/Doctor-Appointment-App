@@ -2,6 +2,8 @@ const userModel = require("../models/userModels");
 const doctorModel = require("../models/doctorModel");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const appointmentModel = require("../models/appointmentModel");
+const moment = require("moment");
 
 //register callback
 const registerController = async (req, res) => {
@@ -145,7 +147,7 @@ const applyDoctorController = async (req, res) => {
 
 const getAllNotificationController = async (req, res) => {
   try {
-    const user = await userModel.findOne({_id: req.body.userId});
+    const user = await userModel.findOne({ _id: req.body.userId });
     const seenNotification = user.seennotification;
     const notification = user.notification;
     seenNotification.push(...notification);
@@ -154,9 +156,9 @@ const getAllNotificationController = async (req, res) => {
     const updatedUser = await user.save();
     res.status(200).send({
       success: true,
-      message: 'All Notifications marked as read',
+      message: "All Notifications marked as read",
       data: updatedUser,
-    })
+    });
   } catch (error) {
     console.log(error);
     res.status(500).send({
@@ -169,31 +171,29 @@ const getAllNotificationController = async (req, res) => {
 
 const deleteAllNotificationController = async (req, res) => {
   try {
-    const user = await userModel.findOne({_id: req.body.userId})
+    const user = await userModel.findOne({ _id: req.body.userId });
     user.notification = [];
     user.seennotification = [];
     const updatedUser = await user.save();
     updatedUser.password = undefined;
     res.status(200).send({
       success: true,
-      message: 'Notifications deleted successfully!',
+      message: "Notifications deleted successfully!",
       data: updatedUser,
-    })
-    
+    });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).send({
-      message: 'Unable to delete all notifications',
+      message: "Unable to delete all notifications",
       success: false,
       error,
-    })
-    
+    });
   }
-}
+};
 
 const getAllDoctorsController = async (req, res) => {
   try {
-    const doctors = await doctorModel.find({status:'approved'});
+    const doctors = await doctorModel.find({ status: "approved" });
     res.status(200).send({
       success: true,
       message: "Doctors List Fetched Successfully",
@@ -209,6 +209,91 @@ const getAllDoctorsController = async (req, res) => {
   }
 };
 
+//BOOK APPOINTMENT
+const bookAppointmentController = async (req, res) => {
+  try {
+    req.body.date = moment(req.body.date, "DD-MM-YYYY").toISOString();
+    req.body.time = moment(req.body.time, "HH:mm").toISOString();
+    req.body.status = "pending";
+    const newAppointment = new appointmentModel(req.body);
+    await newAppointment.save();
+    const user = await userModel.findOne({ _id: req.body.doctorInfo.userId });
+    user.notification.push({
+      type: "New-appointment-request",
+      message: `A new appointment from ${req.body.userInfo.name}`,
+      onClickPath: "/user/appointment",
+    });
+    await user.save();
+    res.status(200).send({
+      success: true,
+      message: "Appointment Booked Successfully",
+    });
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      message: "Error while booking an appointmnet",
+      error,
+    });
+  }
+};
+//BOOK AVAILABILITY
+const bookAvailabilityController = async (req, res) => {
+  try {
+    const date = moment(req.body.date, "DD-MM-YYYY").toISOString();
+    const fromTime = moment(req.body.time, "HH:mm")
+      .subtract(1, "hours")
+      .toISOString();
+    const toTime = moment(req.body.time, "HH:mm").add(1, "hours").toISOString();
+    const doctorId = req.body.doctorId;
+    const appointments = await appointmentModel.find({
+      doctorId,
+      date,
+      time: {
+        $gte: fromTime,
+        $lte: toTime,
+      },
+    });
+    if (appointments.length > 0) {
+      return res.status(200).send({
+        success: true,
+        message: "Appointments NOT Available at the moment",
+      });
+    } else {
+      return res.status(200).send({
+        success: true,
+        // message: "Appointment Booked Successfully",
+        message: "Appointment Available",
+      });
+    }
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error while booking availability",
+      error,
+    });
+  }
+};
+//User Appointment
+const userAppointmentController = async (req, res) => {
+  try {
+    const appointments = await appointmentModel.find({
+      userId: req.body.userId,
+    });
+    res.status(200).send({
+      success: true,
+      message: "User Appointments Fetched Successfully!",
+      data: appointments,
+    });
+  } catch (error) {
+    console.log(error);
+    res.status(500).send({
+      success: false,
+      message: "Error while fetching user appointments",
+      error,
+    });
+  }
+};
 module.exports = {
   loginController,
   authController,
@@ -217,4 +302,7 @@ module.exports = {
   getAllNotificationController,
   deleteAllNotificationController,
   getAllDoctorsController,
+  bookAppointmentController,
+  bookAvailabilityController,
+  userAppointmentController,
 };
